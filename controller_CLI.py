@@ -1,11 +1,10 @@
 import datetime
-
 import model
 
 
 class ToDoController:
-    def __init__(self):
-        self.todo_list: model.ToDoList = model.ToDoList()
+    def __init__(self, todo_list: model.ToDoList):
+        self.todo_list = todo_list
 
     def play(self):
         while True:
@@ -61,7 +60,7 @@ class ToDoController:
 
         due_date_str = input(f'Due date ({model.DATEFORMAT}): ')
 
-        due_date = (datetime.datetime.strptime(due_date_str, 'model.DATEFORMAT')).date()
+        due_date = (datetime.datetime.strptime(due_date_str, model.DATEFORMAT)).date()
 
         self.todo_list.add_task(model.Task(
             description,
@@ -88,6 +87,7 @@ class ToDoController:
 
 
 if __name__ == '__main__':
-    controller = ToDoController()
+    todo_list = model.ToDoList()
+    controller = ToDoController(todo_list)
 
     controller.play()

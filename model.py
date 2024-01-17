@@ -3,7 +3,7 @@ import datetime
 from dataclasses import dataclass, field
 from enum import IntEnum
 
-DATEFORMAT = '%d/%m/%Y'
+DATEFORMAT = '%Y-%m-%d'
 
 class Priority(IntEnum):
     Low = 0
@@ -41,7 +41,7 @@ class Task:
         return iter(
             [
                 self.description,
-                self.priority,
+                self.priority.value,
                 self.due,
                 self.complete,
                 self.completed_date
