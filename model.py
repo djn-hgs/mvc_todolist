@@ -5,10 +5,12 @@ from enum import IntEnum
 
 DATEFORMAT = '%Y-%m-%d'
 
+
 class Priority(IntEnum):
     Low = 0
     Medium = 1
     High = 2
+
 
 PRIORITIES = [
     Priority.Low,
@@ -47,9 +49,14 @@ class Task:
                 self.completed_date
             ]
         )
+
+
 @dataclass
 class ToDoList:
     task_list: list[Task] = field(default_factory=list)
+
+    def __iter__(self):
+        return iter(self.task_list)
 
     def add_task(self, task: Task):
         self.task_list.append(task)
@@ -64,13 +71,13 @@ class ToDoList:
         return self.task_list[task_num]
 
     def save(self, filename: str = 'test.csv'):
-        with open(filename, 'w') as stream:
+        with open(filename, 'w', newline='', encoding='utf-8') as stream:
             writer = csv.writer(stream)
 
             writer.writerows(self.task_list)
 
     def load(self, filename: str = 'test.csv'):
-        with open(filename, 'r') as stream:
+        with open(filename, 'r', newline='', encoding='utf-8') as stream:
             reader = csv.reader(stream)
 
             for row in reader:
@@ -92,11 +99,11 @@ class ToDoList:
                     completed_date = None
 
                 self.task_list.append(
-                            Task(
-                                description,
-                                Priority(int(priority_str)),
-                                datetime.datetime.strptime(due_str, '%Y-%m-%d').date(),
-                                completed,
-                                completed_date
-                            )
+                    Task(
+                        description,
+                        Priority(int(priority_str)),
+                        datetime.datetime.strptime(due_str, '%Y-%m-%d').date(),
+                        completed,
+                        completed_date
+                    )
                 )
