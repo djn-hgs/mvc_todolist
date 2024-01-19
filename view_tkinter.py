@@ -87,12 +87,17 @@ class ToDoViewTkInter(tk.Frame):
 
     def get_new_task(self):
         my_modal = NewTaskModal(self)
-        return my_modal.get()
-
+        task = my_modal.get()
+        if my_modal.submit_pressed:
+            return task
+        else:
+            return None
 
 class NewTaskModal(tk.Toplevel):
     def __init__(self, master, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
+
+        self.submit_pressed = False
 
         self.title('New task')
 
@@ -138,6 +143,7 @@ class NewTaskModal(tk.Toplevel):
         return task
 
     def submit(self):
+        self.submit_pressed = True
         self.destroy()
 
 
