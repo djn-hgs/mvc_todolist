@@ -1,5 +1,6 @@
 import csv
 import datetime
+import json
 from dataclasses import dataclass, field
 from enum import IntEnum
 
@@ -50,6 +51,16 @@ class Task:
             ]
         )
 
+    def as_dict(self):
+        return {
+                'description': self.description,
+                'value': self.priority.value,
+                'due': str(self.due),
+                'complete': self.complete,
+                'completed_date': str(self.completed_date)
+        }
+
+
 
 @dataclass
 class ToDoList:
@@ -57,6 +68,7 @@ class ToDoList:
 
     def __iter__(self):
         return iter(self.task_list)
+
 
     def add_task(self, task: Task):
         self.task_list.append(task)
@@ -70,40 +82,13 @@ class ToDoList:
     def get_task_by_index(self, task_num):
         return self.task_list[task_num]
 
-    def save(self, filename: str = 'test.csv'):
-        with open(filename, 'w', newline='', encoding='utf-8') as stream:
-            writer = csv.writer(stream)
+    def save(self, filename: str = 'test.json'):
+        with open(filename, 'w', encoding='utf-8') as stream:
+            for task in self.task_list:
+                json.dump(task.as_dict(), stream)
 
-            writer.writerows(self.task_list)
+    def load(self, filename: str = 'test.json'):
+        with open(filename, 'r', encoding='utf-8') as stream:
+            data = json.load(stream)
 
-    def load(self, filename: str = 'test.csv'):
-        with open(filename, 'r', newline='', encoding='utf-8') as stream:
-            reader = csv.reader(stream)
-
-            for row in reader:
-                print(row)
-
-                if not row:
-                    break
-
-                (description, priority_str, due_str, completed_str, completed_date_str) = row
-
-                if completed_str == 'False':
-                    completed = False
-                else:
-                    completed = True
-
-                if completed_date_str:
-                    completed_date = datetime.datetime.strptime(completed_date_str, '%Y-%m-%d').date()
-                else:
-                    completed_date = None
-
-                self.task_list.append(
-                    Task(
-                        description,
-                        Priority(int(priority_str)),
-                        datetime.datetime.strptime(due_str, '%Y-%m-%d').date(),
-                        completed,
-                        completed_date
-                    )
-                )
+            print(data)
