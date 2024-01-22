@@ -43,14 +43,15 @@ class ToDoControllerTkInter:
 
     def load(self):
         self.todo_list.load()
-
+        self.view.tasks_viewer.clear()
+        self.view.tasks_viewer.populate()
 
 
 if __name__ == '__main__':
     root = tk.Tk()
 
     todo_list = model.ToDoList()
-    todo_list.load()
+    # todo_list.load()
 
     view = view_tkinter.ToDoViewTkInter(root, todo_list)
 

@@ -53,13 +53,29 @@ class Task:
 
     def as_dict(self):
         return {
-                'description': self.description,
-                'value': self.priority.value,
-                'due': str(self.due),
-                'complete': self.complete,
-                'completed_date': str(self.completed_date)
+            'description': self.description,
+            'priority': self.priority.value,
+            'due': str(self.due),
+            'complete': self.complete,
+            'completed_date': str(self.completed_date) if self.completed_date else None
         }
 
+    @classmethod
+    def from_json(cls, task_json):
+        due_datetime = datetime.date.fromisoformat(task_json['due'])
+
+        if task_json['completed_date']:
+            completed_datetime = datetime.date.fromisoformat(task_json['completed_date'])
+        else:
+            completed_datetime = None
+
+        return cls(
+            description=task_json['description'],
+            priority=Priority(task_json['priority']),
+            due=due_datetime,
+            complete=task_json['complete'],
+            completed_date=completed_datetime
+        )
 
 
 @dataclass
@@ -68,7 +84,6 @@ class ToDoList:
 
     def __iter__(self):
         return iter(self.task_list)
-
 
     def add_task(self, task: Task):
         self.task_list.append(task)
@@ -84,11 +99,16 @@ class ToDoList:
 
     def save(self, filename: str = 'test.json'):
         with open(filename, 'w', encoding='utf-8') as stream:
-            for task in self.task_list:
-                json.dump(task.as_dict(), stream)
+            json.dump([task.as_dict() for task in self.task_list], stream)
 
     def load(self, filename: str = 'test.json'):
         with open(filename, 'r', encoding='utf-8') as stream:
-            data = json.load(stream)
+            data_json = json.load(stream)
 
-            print(data)
+            for item in data_json:
+                print(item)
+
+                self.add_task_from_json(item)
+
+    def add_task_from_json(self, item_json):
+        self.add_task(Task.from_json(item_json))

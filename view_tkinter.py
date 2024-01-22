@@ -32,7 +32,7 @@ class TaskViewer(tk.Frame):
         self.selected_task = tk.IntVar()
         self.selected_task.set(0)
 
-        self.task_views: list[model.Task: TaskView] = []
+        self.task_views: list[TaskView] = []
 
         self.populate()
 
@@ -49,6 +49,13 @@ class TaskViewer(tk.Frame):
         task_view = self.task_views.pop(i)
         task_view.destroy()
         return task_view
+
+    def clear(self):
+        for task in self.task_views:
+            task.destroy()
+
+        self.task_views = []
+
 
     def populate(self):
         for task in self.todo_list:
@@ -108,7 +115,7 @@ class NewTaskModal(tk.Toplevel):
         self.description_label = tk.Label(self, text='Description')
         self.description_entry = tk.Entry(self, textvariable=self.description_stringvar)
 
-        self.due_date_label = tk.Label(self, text='Due date')
+        self.due_date_label = tk.Label(self, text=f'Due date ({model.DATEFORMAT})')
         self.due_date_entry = tk.Entry(self, textvariable=self.due_date_stringvar)
 
         self.priority_label = tk.Label(self, text='Priority')
