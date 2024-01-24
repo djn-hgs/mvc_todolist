@@ -1,6 +1,5 @@
-import csv
 import datetime
-import json
+import pickle
 from dataclasses import dataclass, field
 from enum import IntEnum
 
@@ -61,19 +60,19 @@ class Task:
         }
 
     @classmethod
-    def from_json(cls, task_json):
-        due_datetime = datetime.date.fromisoformat(task_json['due'])
+    def from_dict(cls, task_dict):
+        due_datetime = datetime.date.fromisoformat(task_dict['due'])
 
-        if task_json['completed_date']:
-            completed_datetime = datetime.date.fromisoformat(task_json['completed_date'])
+        if task_dict['completed_date']:
+            completed_datetime = datetime.date.fromisoformat(task_dict['completed_date'])
         else:
             completed_datetime = None
 
         return cls(
-            description=task_json['description'],
-            priority=Priority(task_json['priority']),
+            description=task_dict['description'],
+            priority=Priority(task_dict['priority']),
             due=due_datetime,
-            complete=task_json['complete'],
+            complete=task_dict['complete'],
             completed_date=completed_datetime
         )
 
@@ -97,18 +96,10 @@ class ToDoList:
     def get_task_by_index(self, task_num):
         return self.task_list[task_num]
 
-    def save(self, filename: str = 'test.json'):
-        with open(filename, 'w', encoding='utf-8') as stream:
-            json.dump([task.as_dict() for task in self.task_list], stream)
+    def save(self, filename: str = 'test.pkl'):
+        with open(filename, 'wb') as stream:
+            pickle.dump(self.task_list, stream)
 
-    def load(self, filename: str = 'test.json'):
-        with open(filename, 'r', encoding='utf-8') as stream:
-            data_json = json.load(stream)
-
-            for item in data_json:
-                print(item)
-
-                self.add_task_from_json(item)
-
-    def add_task_from_json(self, item_json):
-        self.add_task(Task.from_json(item_json))
+    def load(self, filename: str = 'test.pkl'):
+        with open(filename, 'rb') as stream:
+            self.task_list = pickle.load(stream)
