@@ -1,5 +1,5 @@
 import datetime
-import pickle
+import xml.etree.ElementTree as et
 from dataclasses import dataclass, field
 from enum import IntEnum
 
@@ -97,9 +97,27 @@ class ToDoList:
         return self.task_list[task_num]
 
     def save(self, filename: str = 'test.pkl'):
-        with open(filename, 'wb') as stream:
-            pickle.dump(self.task_list, stream)
+        task_list_xml = et.Element('TaskList')
 
-    def load(self, filename: str = 'test.pkl'):
-        with open(filename, 'rb') as stream:
-            self.task_list = pickle.load(stream)
+        for task in self.task_list:
+            task_xml = et.SubElement(task_list_xml, 'Task')
+            description_xml = et.SubElement(task_xml, 'Description')
+            description_xml.text = task.description
+            due_date_xml = et.SubElement(task_xml, 'DueDate')
+            due_date_xml.text = datetime.date.isoformat(task.due)
+            complete_xml = et.SubElement(task_xml, 'Complete')
+            complete_xml.text = str(task.complete)
+            if task.complete:
+                complete_date_xml = et.SubElement(task_xml, 'CompletionDate')
+                complete_date_xml.text = datetime.date.isoformat(task.completed_date)
+
+            tree = et.ElementTree(task_list_xml)
+
+            tree.write('task_list.xml')
+
+    #     with open(filename, 'wb') as stream:
+    #         pickle.dump(self.task_list, stream)
+    #
+    # def load(self, filename: str = 'test.pkl'):
+    #     with open(filename, 'rb') as stream:
+    #         self.task_list = pickle.load(stream)
