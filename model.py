@@ -96,13 +96,15 @@ class ToDoList:
     def get_task_by_index(self, task_num):
         return self.task_list[task_num]
 
-    def save(self, filename: str = 'test.pkl'):
+    def save(self, filename: str = 'task_list.xml'):
         task_list_xml = et.Element('TaskList')
 
         for task in self.task_list:
             task_xml = et.SubElement(task_list_xml, 'Task')
             description_xml = et.SubElement(task_xml, 'Description')
             description_xml.text = task.description
+            priority_xml = et.SubElement(task_xml, 'Priority')
+            priority_xml.text = str(task.priority.value)
             due_date_xml = et.SubElement(task_xml, 'DueDate')
             due_date_xml.text = datetime.date.isoformat(task.due)
             complete_xml = et.SubElement(task_xml, 'Complete')
@@ -113,11 +115,44 @@ class ToDoList:
 
             tree = et.ElementTree(task_list_xml)
 
-            tree.write('task_list.xml')
+            tree.write(filename)
 
-    #     with open(filename, 'wb') as stream:
-    #         pickle.dump(self.task_list, stream)
-    #
-    # def load(self, filename: str = 'test.pkl'):
-    #     with open(filename, 'rb') as stream:
-    #         self.task_list = pickle.load(stream)
+    def load(self, filename: str = 'task_list.xml'):
+        tree = et.parse(filename)
+
+        task_list_root_xml = tree.getroot()
+
+        for task_xml in task_list_root_xml:
+
+            description_text = task_xml.find('Description').text
+
+            priority_text = task_xml.find('Priority').text
+            priority = int(priority_text)
+
+            due_date_text = task_xml.find('DueDate').text
+            due_date = datetime.date.fromisoformat(due_date_text)
+
+            complete_text = task_xml.find('Complete').text
+
+            if complete_text == 'True':
+                complete = True
+            else:
+                complete = False
+
+            if complete:
+                complete_date_text = task_xml.find('CompleteDate').text
+                complete_date = datetime.date.fromisoformat(complete_date_text)
+            else:
+                complete_date = None
+
+            self.task_list.append(
+                Task(
+                    description=description_text,
+                    priority=Priority(priority),
+                    due=due_date,
+                    complete=complete,
+                    completed_date=complete_date
+                )
+            )
+
+
