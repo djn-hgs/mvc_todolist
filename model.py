@@ -1,5 +1,6 @@
 import datetime
-import xml.etree.ElementTree as et
+import sqlite3
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from enum import IntEnum
 
@@ -21,6 +22,7 @@ PRIORITIES = [
 
 @dataclass
 class Task:
+    id: int = None
     description: str = ''
     priority: 'Priority' = Priority.Low
     due: datetime.date | None = None
@@ -50,109 +52,111 @@ class Task:
             ]
         )
 
-    def as_dict(self):
-        return {
-            'description': self.description,
-            'priority': self.priority.value,
-            'due': str(self.due),
-            'complete': self.complete,
-            'completed_date': str(self.completed_date) if self.completed_date else None
-        }
 
-    @classmethod
-    def from_dict(cls, task_dict):
-        due_datetime = datetime.date.fromisoformat(task_dict['due'])
-
-        if task_dict['completed_date']:
-            completed_datetime = datetime.date.fromisoformat(task_dict['completed_date'])
-        else:
-            completed_datetime = None
-
-        return cls(
-            description=task_dict['description'],
-            priority=Priority(task_dict['priority']),
-            due=due_datetime,
-            complete=task_dict['complete'],
-            completed_date=completed_datetime
-        )
-
-
-@dataclass
 class ToDoList:
-    task_list: list[Task] = field(default_factory=list)
+    def __init__(self):
+        self.cur = None
+        self.con = None
+        self.initialise_db()
+        # self.task_list: list[Task] = []
 
     def __iter__(self):
-        return iter(self.task_list)
+        task_list = self.get_tasks()
+        return iter(task_list)
 
     def add_task(self, task: Task):
-        self.task_list.append(task)
+        if task.complete:
+            completed_date = task.completed_date.isoformat()
+        else:
+            completed_date = None
+
+        self.cur.execute('INSERT INTO '
+                         'Task(description, PriorityID, DueDate, Complete, CompleteDate) '
+                         'VALUES '
+                         '(?, ?, ?, ?, ?)',
+                         (
+                             task.description,
+                             task.priority.value,
+                             task.due.isoformat(),
+                             task.complete,
+                             completed_date
+                         )
+                         )
+        self.con.commit()
 
     def del_task(self, task: Task):
-        self.task_list.remove(task)
+        self.cur.execute('DELETE FROM Task WHERE id = ?',
+                         (task.id,))
+        self.con.commit()
 
     def get_tasks(self):
-        return self.task_list
+        task_list_query = self.cur.execute('SELECT * FROM Task')
+
+        all_tasks = task_list_query.fetchall()
+
+        task_list = []
+
+        for task_tuple in all_tasks:
+            (
+                task_id,
+                description,
+                priority_int,
+                due_iso,
+                complete_int,
+                complete_date_iso
+            ) = task_tuple
+
+            if complete_int:
+                completed_date = datetime.date.fromisoformat(complete_date_iso)
+            else:
+                completed_date = None
+
+            task_list.append(
+                Task(
+                    id=task_id,
+                    description=description,
+                    priority=Priority(priority_int),
+                    due=datetime.date.fromisoformat(due_iso),
+                    complete=bool(complete_int),
+                    completed_date=completed_date
+                )
+            )
+
+        return task_list
+
+    def mark_task_complete(self, task):
+        task.mark_complete()
+        self.cur.execute('UPDATE Task '
+                         'SET Complete = 1, '
+                         'CompleteDate = ? '
+                         'WHERE id = ?;',
+                         (task.completed_date.isoformat(), task.id,)
+                         )
+        self.con.commit()
 
     def get_task_by_index(self, task_num):
         return self.task_list[task_num]
 
-    def save(self, filename: str = 'task_list.xml'):
-        task_list_xml = et.Element('TaskList')
+    def initialise_db(self, filename: str = 'task_list.sqlite3'):
+        self.con = sqlite3.connect(filename)
 
-        for task in self.task_list:
-            task_xml = et.SubElement(task_list_xml, 'Task')
-            description_xml = et.SubElement(task_xml, 'Description')
-            description_xml.text = task.description
-            priority_xml = et.SubElement(task_xml, 'Priority')
-            priority_xml.text = str(task.priority.value)
-            due_date_xml = et.SubElement(task_xml, 'DueDate')
-            due_date_xml.text = datetime.date.isoformat(task.due)
-            complete_xml = et.SubElement(task_xml, 'Complete')
-            complete_xml.text = str(task.complete)
-            if task.complete:
-                complete_date_xml = et.SubElement(task_xml, 'CompletionDate')
-                complete_date_xml.text = datetime.date.isoformat(task.completed_date)
+        self.cur = self.con.cursor()
 
-            tree = et.ElementTree(task_list_xml)
+        table_name_query = self.cur.execute('SELECT distinct name FROM sqlite_master')
+        table_names = table_name_query.fetchall()
 
-            tree.write(filename)
+        if ('Priority',) not in table_names:
+            print('Creating Priority table')
+            self.cur.execute('CREATE TABLE Priority(PriorityID INTEGER, PriorityName TEXT)')
 
-    def load(self, filename: str = 'task_list.xml'):
-        tree = et.parse(filename)
+        if ('Task',) not in table_names:
+            print('Creating Task table')
+            self.cur.execute('CREATE TABLE Task(id INTEGER PRIMARY KEY, description TEXT, PriorityID INTEGER, '
+                             'DueDate TEXT, Complete INTEGER, CompleteDate TEXT)')
 
-        task_list_root_xml = tree.getroot()
+        self.con.commit()
 
-        for task_xml in task_list_root_xml:
+        table_name_query = self.cur.execute('SELECT distinct name FROM sqlite_master')
+        table_names = table_name_query.fetchall()
 
-            description_text = task_xml.find('Description').text
-
-            priority_text = task_xml.find('Priority').text
-            priority = int(priority_text)
-
-            due_date_text = task_xml.find('DueDate').text
-            due_date = datetime.date.fromisoformat(due_date_text)
-
-            complete_text = task_xml.find('Complete').text
-
-            if complete_text == 'True':
-                complete = True
-            else:
-                complete = False
-
-            if complete:
-                complete_date_text = task_xml.find('CompleteDate').text
-                complete_date = datetime.date.fromisoformat(complete_date_text)
-            else:
-                complete_date = None
-
-            self.task_list.append(
-                Task(
-                    description=description_text,
-                    priority=Priority(priority),
-                    due=due_date,
-                    complete=complete,
-                    completed_date=complete_date
-                )
-            )
-
-
+        print(table_names)

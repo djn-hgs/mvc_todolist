@@ -27,7 +27,7 @@ class ToDoControllerTkInter:
         i, task_view = self.view.tasks_viewer.get_selection()
 
         if task_view:
-            task_view.task.mark_complete()
+            self.todo_list.mark_task_complete(task_view.task)
             task_view.update()
 
     def add_task(self):
